@@ -19,16 +19,6 @@ int runCommand(char* cmd) {
 	char new_cmd[MAX_ARGS];
 	strcpy(new_cmd, cmd);
 	char* token = strtok(new_cmd, " ");
-	if(strcmp(token, "ccd") == 0) {
-		// Do things, then return with 2
-		chdir(strtok(NULL, " "));
-		return 2;
-	} else if(strcmp(token, "cpwd") == 0) {
-		// Do things, then return with 2
-		char current[MAX_ARGS];
-		printf("%s\n", getcwd(current, MAX_ARGS));
-		return 2;
-	}
 	// Splits the string for the execvp command
 	int counter = 0;
 	while(token != NULL) {
@@ -70,17 +60,31 @@ int main(int argc, char* argv[]) {
 
 	// Main for loop to run all the commands in commands[]
 	while(fgets(command, MAX_ARGS, fp) != NULL) {
-		pid_t id = fork();
 		command[strcspn(command, "\n")] = 0;
 		gettimeofday(&before, NULL);
 		getrusage(RUSAGE_SELF, &rbefore);
-		if(id == 0) {
-			char* cmd;
-			strcpy(cmd, command);
-			if(runCommand(cmd) != 2) printf("Error: Command did not run.\n");
-			exit(1);
+		char* originalCommand = malloc(MAX_ARGS * sizeof(char));
+		strcpy(originalCommand, command);
+		if(strcmp(strtok(command, " "), "ccd") == 0) {
+			char* dir = strtok(NULL, " "); 
+			chdir(dir);
+			printf("Running command: %s %s\n", command, dir);
+			printf("Changed to directory: %s\n\n", dir);
+			continue;
+		} else if(strcmp(strtok(command, " "), "cpwd") == 0) {	
+			char current[MAX_ARGS];
+			printf("Running command: %s\n", command);
+			printf("%s\n\n", getcwd(current, MAX_ARGS));
+			continue;
+		} else {
+			pid_t id = fork();
+			if(id == 0) {
+				int returnCode = runCommand(originalCommand);
+				if(returnCode != 0) printf("Error: Command did not run.\n");
+				return returnCode;
+			}
+			wait(NULL);
 		}
-		wait(NULL);
 		gettimeofday(&after, NULL);
 		getrusage(RUSAGE_SELF, &rafter);
 		printStatistics(before, after, rbefore, rafter);
