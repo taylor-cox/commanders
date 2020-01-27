@@ -1,5 +1,9 @@
-ls -la
-cpwd
+touch test.txt
+rm test.txt
 ccd /
+ls -alh
 cpwd
-ls -la
+ccd /home
+ls -alh
+cpwd
+aekufahsejkfansdfnlaskdjncasd,cnaskjdvnasjd,djvnajsk,dnbjdhvhasdbzmjxbnv,kjzdbvjhadbfv,akjdhvbadfjbasdlvhjbdfvjshbdvsdfkjahsdflkajsdfhlkajdfhlk

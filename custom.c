@@ -11,12 +11,13 @@
 #include "custom.h"
 #include <string.h>
 
-#define MAX_ARGS 100
+#define MAX_CHARS 128
+#define MAX_ARGS 32
 
 int runCommand(char* cmd) {
-	char* argv[MAX_ARGS];
-	printf("Running command: %s\n", cmd);
-	char new_cmd[MAX_ARGS];
+	char* argv[MAX_ARGS * 2];
+	//printf("Running command: %s\n", cmd);
+	char new_cmd[MAX_CHARS];
 	strcpy(new_cmd, cmd);
 	char* token = strtok(new_cmd, " ");
 	// Splits the string for the execvp command
@@ -56,25 +57,28 @@ int main(int argc, char* argv[]) {
 		return 1;
 	}
 	
-	char command[MAX_ARGS];	
+	char command[MAX_CHARS];	
 
 	// Main for loop to run all the commands in commands[]
-	while(fgets(command, MAX_ARGS, fp) != NULL) {
+	while(fgets(command, MAX_CHARS, fp) != NULL) {
 		command[strcspn(command, "\n")] = 0;
+		printf("Running command: %s\n", command);
+		if(strlen(command) == MAX_CHARS - 1) {
+			printf("Command too long! Could not be run. Continuing to next command...\n\n");
+			continue;
+		}
 		gettimeofday(&before, NULL);
 		getrusage(RUSAGE_SELF, &rbefore);
-		char* originalCommand = malloc(MAX_ARGS * sizeof(char));
+		char* originalCommand = malloc(MAX_CHARS * sizeof(char));
 		strcpy(originalCommand, command);
 		if(strcmp(strtok(command, " "), "ccd") == 0) {
 			char* dir = strtok(NULL, " "); 
 			chdir(dir);
-			printf("Running command: %s %s\n", command, dir);
 			printf("Changed to directory: %s\n\n", dir);
 			continue;
 		} else if(strcmp(strtok(command, " "), "cpwd") == 0) {	
-			char current[MAX_ARGS];
-			printf("Running command: %s\n", command);
-			printf("%s\n\n", getcwd(current, MAX_ARGS));
+			char current[MAX_CHARS];
+			printf("%s\n\n", getcwd(current, MAX_CHARS));
 			continue;
 		} else {
 			pid_t id = fork();
