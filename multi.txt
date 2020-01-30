@@ -1,0 +1,7 @@
+sleep 30
+ls -alh
+sleep 10
+cpwd
+Sleep 4
+ls -alh
+cpwd
