@@ -10,77 +10,104 @@
 #include <signal.h>
 #include <stdlib.h>
 
-int siblings, taskStatus, i;
+int siblings, taskStatus;
+pid_t processes[1000];
+int lastBkrdProcess;
+
+void printStatistics(struct timeval processBegin, struct timeval ProcessEnds, struct rusage statsToBePrinted) {
+	printf("\n-- Statistics ---\n");
+	printf("Elapsed time: %d milliseconds\n", (int)(1000*(ProcessEnds.tv_sec - processBegin.tv_sec) + (ProcessEnds.tv_usec - processBegin.tv_usec) / 1000));
+	printf("Page Faults: %ld\n", statsToBePrinted.ru_majflt);
+	printf("Page Faults (reclaimed): %ld\n", statsToBePrinted.ru_minflt);
+	printf("-- End of Statistics --\n\n");
+}
+
 void taskExecute(char* commandLineArgs, int shouldWait, int localProc){
     printf("Running command: %s\n", commandLineArgs);
     struct rusage statsToBePrinted;
-    if (shouldWait){
+    // Making Two arrays: one command array, and another temporary array to be used in functioning
+    char *arguments[1000], temporaryArray[1000];
+    struct timeval processBegin, ProcessEnds;
+
+	// Copying the array for temporary work
+    strcpy(temporaryArray, commandLineArgs);
+    
+	// Checks arg length and command length
+    if(strlen(temporaryArray) > 128) {
+		printf("Argument Maximum length can be 128 having 32 arguments!\n");
+    }
+
+	// Checks waiting
+    if(shouldWait){
         printf("Processs waiting\n");
-    }else{
+    } else {
         printf("Process not waiting\n");
     }
-    //Making Two arrays: one command array, and another temporary array to be used in functioning
-    char *arguments[1000], temporaryArray[1000];
-    //Copying the array for temporary work
-    strcpy(temporaryArray, commandLineArgs);
-    //Initiating the task while checking the time
-    //For time, two variables will be used to indicate the start and end time of the process
-    struct timeval processBegin, ProcessEnds;
-    //Creating functionality for directory commands such as ccd, cpwd
-    if (strlen(commandLineArgs) > 4 && strncmp(commandLineArgs, "ccd", 4) == 0){
-        //For loop for directory
-        for (int k=0; k<4; k++){*commandLineArgs++;}
-        //Changing the directory
+
+	// Creating functionality for directory commands such as ccd, cpwd
+    if(strlen(commandLineArgs) > 4 && strncmp(commandLineArgs, "ccd", 4) == 0) {
+        // For loop for directory
+        for(int k=0; k<4; k++){
+			*commandLineArgs++;
+		}
         chdir(commandLineArgs);
-        //Logging the description of directory being changed
         printf("Directory is Changed to: %s   [Output of ccd]\n\n", commandLineArgs);
         return;
-    }else if (strlen(commandLineArgs) >= 4 && strncmp(commandLineArgs, "cpwd", 4) == 0){
-        //Showing the current directory
+    } else if (strlen(commandLineArgs) >= 4 && strncmp(commandLineArgs, "cpwd", 4) == 0) {
         printf("Fetching Current directory: %s    [Output of cpwd]\n\n", getcwd(temporaryArray, 1000));
         return;
-    }else if (strlen(commandLineArgs) >= 9 && strncmp(commandLineArgs, "cproclist", 9) == 0){
+    } else if (strlen(commandLineArgs) >= 9 && strncmp(commandLineArgs, "cproclist", 9) == 0) {
+		printf("NEED TO IMPLEMENT\n\n");
+		return;
+	}
 
-    }
     //Single for Loop being used 
-    for (i=0; commandLineArgs[i]; commandLineArgs[i] == ' ' ? i++ : *commandLineArgs++){}
+    for (int i=0; commandLineArgs[i]; commandLineArgs[i] == ' ' ? i++ : *commandLineArgs++){}
+
     //Checking for max argument length
-    if (strlen(temporaryArray) > 128 || i > 32) printf("Argument Maximum length can be 128 having 32 arguments!\n");
-    for(i=0; (arguments[i]=strtok(i == 0 ? temporaryArray : NULL, " ")) != NULL; i++){}
-    if ((siblings=fork()) == 0){
-        //Seting process for beginning time
+    for(int i=0; (arguments[i]=strtok(i == 0 ? temporaryArray : NULL, " ")) != NULL; i++) { }
+    
+	if((siblings=fork()) == 0){
         gettimeofday(&processBegin, NULL);
+		// 
         if ((siblings=fork()) == 0){
             execvp(arguments[0], arguments);
             printf("Exec failed\n");
-        }else{
+        } else {
             while(waitpid(siblings, &taskStatus, 0) == -1){}
-            //Getting the process end time
             gettimeofday(&ProcessEnds, NULL);
             getrusage(siblings, &statsToBePrinted);
-            //Printf command for statistics
-            printf("\n-- Statistics ---\nElapsed time: %d milliseconds\nPage Faults: %ld\nPage Faults (reclaimed): %ld\n-- End of Statistics --\n\n", (int)(1000*(ProcessEnds.tv_sec - processBegin.tv_sec) + (ProcessEnds.tv_usec - processBegin.tv_usec) / 1000), statsToBePrinted.ru_majflt, statsToBePrinted.ru_minflt);
-            //Killing the process
-            kill(getpid(),SIGINT);
+			printStatistics(processBegin, ProcessEnds, statsToBePrinted);
+            kill(getpid(), SIGINT);
         }
-    }else{
-        while(shouldWait && waitpid(siblings, &taskStatus, 0) == -1){}
+    } else {
+		if(!shouldWait) {
+			printf("\n%d\n\n", getpid());
+			processes[lastBkrdProcess] = siblings;
+			lastBkrdProcess++;
+		}
+        while(shouldWait && waitpid(siblings, &taskStatus, 0) == -1) { }
     }
 }
+
 int main(int argc, char **argv){
-    //Pointer for the file
-    FILE * filePointer=fopen("multi.txt","r");
-    //Fetching single Line
-    char* singleLine=NULL;
-    //Making a length variable
-    size_t singleLineLength=0;
-    //Making a position integer for the line
-    int position=0;
-    i=1;
+    FILE* filePointer = fopen("multi.txt","r");
+    char* singleLine = NULL;
+    size_t singleLineLength = 0;
+    int position = 0;
+    int i = 1;
+	lastBkrdProcess = 0;
+	for(int j = 0; j < 1000; j++) {
+		processes[j] = -1;
+	}
+
     //Getting each line and executing the command
     while (getline(&singleLine, &singleLineLength, filePointer) != -1){
         //Fetching 
-        singleLine[strlen(singleLine) - 1]='\0';
+        singleLine[strcspn(singleLine, "\n")] = 0;
+		if(singleLine[strlen(singleLine) - 1] == '\r') {
+			singleLine[strlen(singleLine) - 1] = 0;
+		}
         //Checking for given arguments
         if (position + 1 < argc && i == atoi(argv[position + 1])){
             //Checking the position
@@ -92,4 +119,9 @@ int main(int argc, char **argv){
         }
         i++;
     }
+	printf("%d\n", processes[0]);
+	for(int j = 0; j < lastBkrdProcess; j++) {
+		printf("%d\n", processes[j]);
+		while(waitpid(processes[j], &taskStatus, 0) == -1) { }
+	}
 }

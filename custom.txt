@@ -6,4 +6,3 @@ cpwd
 ccd /home
 ls -alh
 cpwd
-aekufahsejkfansdfnlaskdjncasd,cnaskjdvnasjd,djvnajsk,dnbjdhvhasdbzmjxbnv,kjzdbvjhadbfv,akjdhvbadfjbasdlvhjbdfvjshbdvsdfkjahsdflkajsdfhlkajdfhlk

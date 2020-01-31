@@ -1,7 +1,6 @@
-sleep 30
-ls -alh
-sleep 10
+sleep 3
+ls -la
+sleep 2
 cpwd
-Sleep 4
-ls -alh
-cpwd
+cproclist
+ls -la
